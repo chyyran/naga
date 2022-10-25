@@ -3,9 +3,31 @@ use crate::arena::{Arena, Handle, UniqueArena};
 use super::{Error, LookupExpression, LookupHelper as _};
 
 #[derive(Clone, Debug)]
-pub(super) struct LookupSampledImage {
-    image: Handle<crate::Expression>,
-    sampler: Handle<crate::Expression>,
+pub(super) enum LookupSampledImage {
+    SampledImage {
+        image: Handle<crate::Expression>,
+        sampler: Handle<crate::Expression>,
+    },
+    // combined image sampler
+    ImageSampler {
+        image: Handle<crate::Expression>,
+    }
+}
+
+impl LookupSampledImage {
+    pub fn image(&self) -> Handle<crate::Expression> {
+        match self {
+            LookupSampledImage::SampledImage { image, .. } => image,
+            LookupSampledImage::ImageSampler { image, .. } => image
+        }.clone()
+    }
+
+    pub fn sampler(&self) -> Handle<crate::Expression> {
+        match self {
+            LookupSampledImage::SampledImage { sampler, .. } => sampler,
+            LookupSampledImage::ImageSampler { image, .. } => image
+        }.clone()
+    }
 }
 
 bitflags::bitflags! {
@@ -228,7 +250,7 @@ impl<I: Iterator<Item = u32>> super::Parser<I> {
         let sampler_lexp = self.lookup_expression.lookup(sampler_id)?;
         self.lookup_sampled_image.insert(
             result_id,
-            LookupSampledImage {
+            LookupSampledImage::SampledImage {
                 image: image_lexp.handle,
                 sampler: sampler_lexp.handle,
             },
@@ -243,7 +265,7 @@ impl<I: Iterator<Item = u32>> super::Parser<I> {
         self.lookup_expression.insert(
             result_id,
             LookupExpression {
-                handle: self.lookup_sampled_image.lookup(sampled_image_id)?.image,
+                handle: self.lookup_sampled_image.lookup(sampled_image_id)?.image(),
                 type_id: result_type_id,
                 block_id,
             },
@@ -516,7 +538,15 @@ impl<I: Iterator<Item = u32>> super::Parser<I> {
             image_ops ^= bit;
         }
 
-        let si_lexp = self.lookup_sampled_image.lookup(sampled_image_id)?;
+        let si_lexp = if let Ok(si) = self.lookup_sampled_image.lookup(sampled_image_id) {
+            Ok(si.clone())
+        } else {
+           let combined: &LookupExpression = self.lookup_expression.lookup(sampled_image_id)?;
+            Ok(LookupSampledImage::ImageSampler {
+                image: combined.handle.clone()
+            })
+        }?;
+
         let coord_lexp = self.lookup_expression.lookup(coordinate_id)?;
         let coord_handle =
             self.get_expr_handle(coordinate_id, coord_lexp, ctx, emitter, block, body_idx);
@@ -528,7 +558,7 @@ impl<I: Iterator<Item = u32>> super::Parser<I> {
             SamplingFlags::REGULAR
         };
 
-        let image_ty = match ctx.expressions[si_lexp.image] {
+        let image_ty = match ctx.expressions[si_lexp.image()] {
             crate::Expression::GlobalVariable(handle) => {
                 if let Some(flags) = self.handle_sampling.get_mut(&handle) {
                     *flags |= sampling_bit;
@@ -542,7 +572,7 @@ impl<I: Iterator<Item = u32>> super::Parser<I> {
             }
             ref other => return Err(Error::InvalidGlobalVar(other.clone())),
         };
-        match ctx.expressions[si_lexp.sampler] {
+        match ctx.expressions[si_lexp.sampler()] {
             crate::Expression::GlobalVariable(handle) => {
                 *self.handle_sampling.get_mut(&handle).unwrap() |= sampling_bit
             }
@@ -606,15 +636,17 @@ impl<I: Iterator<Item = u32>> super::Parser<I> {
         };
 
         let expr = crate::Expression::ImageSample {
-            image: si_lexp.image,
-            sampler: si_lexp.sampler,
-            gather: None, //TODO
-            coordinate,
-            array_index,
-            offset,
-            level,
-            depth_ref,
+                image: si_lexp.image(),
+                sampler: si_lexp.sampler(),
+                gather: None, //TODO
+                coordinate,
+                array_index,
+                offset,
+                level,
+                depth_ref,
         };
+
+
         self.lookup_expression.insert(
             result_id,
             LookupExpression {

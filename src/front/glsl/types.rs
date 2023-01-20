@@ -125,7 +125,8 @@ pub fn parse_type(type_name: &str) -> Option<Type> {
                 let size = iter.next()?;
                 let kind = texture_kind(kind)?;
 
-                let sampled = |multi| ImageClass::Sampled { kind, multi };
+                // todo: check for combined image sampler
+                let sampled = |multi| ImageClass::Sampled { kind, multi, includes_sampler: false };
 
                 let (dim, arrayed, class) = match size {
                     "1D" => (ImageDimension::D1, false, sampled(false)),

@@ -893,6 +893,7 @@ mod type_inner_tests {
             class: crate::ImageClass::Sampled {
                 kind: crate::ScalarKind::Float,
                 multi: true,
+                includes_sampler: false
             },
         };
         assert_eq!(
@@ -2568,7 +2569,7 @@ impl Parser {
                 ast::Type::Image {
                     dim: crate::ImageDimension::D1,
                     arrayed: false,
-                    class: crate::ImageClass::Sampled { kind, multi: false },
+                    class: crate::ImageClass::Sampled { kind, multi: false, includes_sampler: false },
                 }
             }
             "texture_1d_array" => {
@@ -2577,7 +2578,7 @@ impl Parser {
                 ast::Type::Image {
                     dim: crate::ImageDimension::D1,
                     arrayed: true,
-                    class: crate::ImageClass::Sampled { kind, multi: false },
+                    class: crate::ImageClass::Sampled { kind, multi: false, includes_sampler: false  },
                 }
             }
             "texture_2d" => {
@@ -2586,7 +2587,7 @@ impl Parser {
                 ast::Type::Image {
                     dim: crate::ImageDimension::D2,
                     arrayed: false,
-                    class: crate::ImageClass::Sampled { kind, multi: false },
+                    class: crate::ImageClass::Sampled { kind, multi: false, includes_sampler: false  },
                 }
             }
             "texture_2d_array" => {
@@ -2595,7 +2596,7 @@ impl Parser {
                 ast::Type::Image {
                     dim: crate::ImageDimension::D2,
                     arrayed: true,
-                    class: crate::ImageClass::Sampled { kind, multi: false },
+                    class: crate::ImageClass::Sampled { kind, multi: false, includes_sampler: false  },
                 }
             }
             "texture_3d" => {
@@ -2604,7 +2605,7 @@ impl Parser {
                 ast::Type::Image {
                     dim: crate::ImageDimension::D3,
                     arrayed: false,
-                    class: crate::ImageClass::Sampled { kind, multi: false },
+                    class: crate::ImageClass::Sampled { kind, multi: false, includes_sampler: false  },
                 }
             }
             "texture_cube" => {
@@ -2613,7 +2614,7 @@ impl Parser {
                 ast::Type::Image {
                     dim: crate::ImageDimension::Cube,
                     arrayed: false,
-                    class: crate::ImageClass::Sampled { kind, multi: false },
+                    class: crate::ImageClass::Sampled { kind, multi: false, includes_sampler: false  },
                 }
             }
             "texture_cube_array" => {
@@ -2622,7 +2623,7 @@ impl Parser {
                 ast::Type::Image {
                     dim: crate::ImageDimension::Cube,
                     arrayed: true,
-                    class: crate::ImageClass::Sampled { kind, multi: false },
+                    class: crate::ImageClass::Sampled { kind, multi: false, includes_sampler: false  },
                 }
             }
             "texture_multisampled_2d" => {
@@ -2631,7 +2632,7 @@ impl Parser {
                 ast::Type::Image {
                     dim: crate::ImageDimension::D2,
                     arrayed: false,
-                    class: crate::ImageClass::Sampled { kind, multi: true },
+                    class: crate::ImageClass::Sampled { kind, multi: true, includes_sampler: false  },
                 }
             }
             "texture_multisampled_2d_array" => {
@@ -2640,7 +2641,7 @@ impl Parser {
                 ast::Type::Image {
                     dim: crate::ImageDimension::D2,
                     arrayed: true,
-                    class: crate::ImageClass::Sampled { kind, multi: true },
+                    class: crate::ImageClass::Sampled { kind, multi: true, includes_sampler: false  },
                 }
             }
             "texture_depth_2d" => ast::Type::Image {

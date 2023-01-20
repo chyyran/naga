@@ -196,7 +196,7 @@ impl LocalImageType {
         let dim = spirv::Dim::from(dim);
 
         match class {
-            crate::ImageClass::Sampled { kind, multi } => LocalImageType {
+            crate::ImageClass::Sampled { kind, multi, includes_sampler: _ } => LocalImageType {
                 sampled_type: kind,
                 dim,
                 flags: make_flags(multi, ImageTypeFlags::SAMPLED),

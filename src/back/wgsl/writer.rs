@@ -475,7 +475,7 @@ impl<W: Write> Writer<W> {
                 let dim_str = image_dimension_str(dim);
                 let arrayed_str = if arrayed { "_array" } else { "" };
                 let (class_str, multisampled_str, format_str, storage_str) = match class {
-                    Ic::Sampled { kind, multi } => (
+                    Ic::Sampled { kind, multi, includes_sampler: _ } => (
                         "",
                         if multi { "multisampled_" } else { "" },
                         scalar_kind_str(kind, 4),

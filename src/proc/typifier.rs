@@ -487,7 +487,7 @@ impl<'a> ResolveContext<'a> {
             } => match *past(image)?.inner_with(types) {
                 Ti::Image { class, .. } => TypeResolution::Value(Ti::Vector {
                     kind: match class {
-                        crate::ImageClass::Sampled { kind, multi: _ } => kind,
+                        crate::ImageClass::Sampled { kind, multi: _, includes_sampler: _ } => kind,
                         _ => crate::ScalarKind::Float,
                     },
                     width: 4,
@@ -505,7 +505,7 @@ impl<'a> ResolveContext<'a> {
                         kind: crate::ScalarKind::Float,
                         width: 4,
                     },
-                    crate::ImageClass::Sampled { kind, multi: _ } => Ti::Vector {
+                    crate::ImageClass::Sampled { kind, multi: _, includes_sampler: _ } => Ti::Vector {
                         kind,
                         width: 4,
                         size: crate::VectorSize::Quad,

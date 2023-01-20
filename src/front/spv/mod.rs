@@ -113,6 +113,8 @@ impl crate::TypeInner {
                     crate::ImageClass::Sampled {
                         kind: crate::ScalarKind::Float,
                         multi: false,
+                        // todo: check for combined image sampler
+                        includes_sampler: false
                     },
                 ..
             } => true,
@@ -4520,6 +4522,8 @@ impl<I: Iterator<Item = u32>> Parser<I> {
                 crate::ImageClass::Sampled {
                     kind,
                     multi: is_msaa,
+                    // todo: check for combined image sampler
+                    includes_sampler: false
                 }
             },
             dim,

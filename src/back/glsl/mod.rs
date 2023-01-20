@@ -888,8 +888,8 @@ impl<'a, W: Write> Writer<'a, W> {
         use crate::ImageClass as Ic;
 
         let (base, kind, ms, comparison) = match class {
-            Ic::Sampled { kind, multi: true } => ("sampler", kind, "MS", ""),
-            Ic::Sampled { kind, multi: false } => ("sampler", kind, "", ""),
+            Ic::Sampled { kind, multi: true, includes_sampler: _ } => ("sampler", kind, "MS", ""),
+            Ic::Sampled { kind, multi: false, includes_sampler: _ } => ("sampler", kind, "", ""),
             Ic::Depth { multi: true } => ("sampler", crate::ScalarKind::Float, "MS", ""),
             Ic::Depth { multi: false } => ("sampler", crate::ScalarKind::Float, "", "Shadow"),
             Ic::Storage { format, .. } => ("image", format.into(), "", ""),

@@ -146,7 +146,7 @@ impl<'a> Display for TypeContext<'a> {
                     crate::ImageDimension::Cube => "cube",
                 };
                 let (texture_str, msaa_str, kind, access) = match class {
-                    crate::ImageClass::Sampled { kind, multi } => {
+                    crate::ImageClass::Sampled { kind, multi, includes_sampler: _ } => {
                         let (msaa_str, access) = if multi {
                             ("_ms", "read")
                         } else {

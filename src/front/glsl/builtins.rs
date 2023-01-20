@@ -187,7 +187,8 @@ pub fn inject_builtin(
 
                     let class = match shadow {
                         true => ImageClass::Depth { multi },
-                        false => ImageClass::Sampled { kind, multi },
+                        // todo: check for combined image sampler
+                        false => ImageClass::Sampled { kind, multi, includes_sampler: false },
                     };
 
                     let image = TypeInner::Image {
@@ -278,7 +279,8 @@ pub fn inject_builtin(
             let f = |kind, dim, arrayed, multi, shadow| {
                 let class = match shadow {
                     true => ImageClass::Depth { multi },
-                    false => ImageClass::Sampled { kind, multi },
+                    // todo: check for combined image sampler
+                    false => ImageClass::Sampled { kind, multi, includes_sampler: false },
                 };
 
                 let image = TypeInner::Image {
@@ -317,7 +319,8 @@ pub fn inject_builtin(
                 let image = TypeInner::Image {
                     dim,
                     arrayed,
-                    class: ImageClass::Sampled { kind, multi },
+                    // todo: check for combined image sampler
+                    class: ImageClass::Sampled { kind, multi, includes_sampler: false },
                 };
 
                 let dim_value = image_dims_to_coords_size(dim);
@@ -489,6 +492,8 @@ fn inject_standard_builtins(
                         class: ImageClass::Sampled {
                             kind: Sk::Float,
                             multi: matches!(name, "sampler2DMS" | "sampler2DMSArray"),
+                            // todo: check for combined image sampler
+                            includes_sampler: false
                         },
                     },
                     TypeInner::Sampler { comparison: false },
@@ -520,6 +525,8 @@ fn inject_standard_builtins(
                         0 => ImageClass::Sampled {
                             kind: Sk::Float,
                             multi: false,
+                            // todo: check for combined image sampler
+                            includes_sampler: false
                         },
                         _ => ImageClass::Depth { multi: false },
                     },

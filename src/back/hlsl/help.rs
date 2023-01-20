@@ -131,7 +131,7 @@ impl<'a, W: Write> super::Writer<'a, W> {
                 let multi_str = if multi { "MS" } else { "" };
                 write!(self.out, "{}<float>", multi_str)?
             }
-            crate::ImageClass::Sampled { kind, multi } => {
+            crate::ImageClass::Sampled { kind, multi, includes_sampler: _ } => {
                 let multi_str = if multi { "MS" } else { "" };
                 let scalar_kind_str = kind.to_hlsl_str(4)?;
                 write!(self.out, "{}<{}4>", multi_str, scalar_kind_str)?

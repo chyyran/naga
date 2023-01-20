@@ -556,6 +556,8 @@ pub enum ImageClass {
         /// A multi-sampled image holds several samples per texel. Multi-sampled
         /// images cannot have mipmaps.
         multi: bool,
+        /// The image contains a reference to its own sampler, i.e. combined image samplers.
+        includes_sampler: bool,
     },
     /// Depth comparison image.
     Depth {

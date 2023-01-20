@@ -2114,8 +2114,6 @@ fn texture_call(
     body: &mut Block,
     meta: Span,
 ) -> Result<Handle<Expression>> {
-    let ty = ctx.typifier.get(image, &parser.module.types);
-    println!("{:?}", ty);
     if let Some(sampler) = ctx.samplers.get(&image).copied() {
         let mut array_index = comps.array_index;
 
@@ -2127,6 +2125,27 @@ fn texture_call(
             Expression::ImageSample {
                 image,
                 sampler,
+                gather: None, //TODO
+                coordinate: comps.coordinate,
+                array_index,
+                offset,
+                level,
+                depth_ref: comps.depth_ref,
+            },
+            meta,
+            body,
+        ))
+    } else if let TypeInner::Image { class: ImageClass::Sampled { includes_sampler: true, .. }, .. }
+        = ctx.typifier.get(image, &parser.module.types) {
+        let mut array_index = comps.array_index;
+        if let Some(ref mut array_index_expr) = array_index {
+            ctx.conversion(array_index_expr, meta, Sk::Sint, 4)?;
+        }
+
+        Ok(ctx.add_expression(
+            Expression::ImageSample {
+                image,
+                sampler: image,
                 gather: None, //TODO
                 coordinate: comps.coordinate,
                 array_index,

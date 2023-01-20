@@ -614,6 +614,7 @@ impl Parser {
         // Initiate the declaration if it wasn't previously initialized and inject builtins
         let declaration = self.lookup_function.entry(name.clone()).or_insert_with(|| {
             variations |= BuiltinVariations::STANDARD;
+            variations |= BuiltinVariations::COMBINED_IMAGE_SAMPLERS;
             Default::default()
         });
         inject_builtin(declaration, &mut self.module, &name, variations);
@@ -1046,6 +1047,7 @@ impl Parser {
         // Initiate the declaration if it wasn't previously initialized and inject builtins
         let declaration = lookup_function.entry(name.clone()).or_insert_with(|| {
             variations |= BuiltinVariations::STANDARD;
+            variations |= BuiltinVariations::COMBINED_IMAGE_SAMPLERS;
             Default::default()
         });
         inject_builtin(declaration, module, &name, variations);
@@ -1135,6 +1137,7 @@ impl Parser {
         // Initiate the declaration if it wasn't previously initialized and inject builtins
         let declaration = lookup_function.entry(name.clone()).or_insert_with(|| {
             variations |= BuiltinVariations::STANDARD;
+            variations |= BuiltinVariations::COMBINED_IMAGE_SAMPLERS;
             Default::default()
         });
         inject_builtin(declaration, module, &name, variations);

@@ -112,7 +112,7 @@ pub fn inject_builtin(
         | "textureProjLod"
         | "textureProjLodOffset"
         | "textureProjOffset" => {
-            let f = |kind, dim, arrayed, multi, shadow| {
+            let f = |kind, dim, arrayed, multi, shadow, includes_sampler| {
                 for bits in 0..=0b11 {
                     let variant = bits & 0b1 != 0;
                     let bias = bits & 0b10 != 0;
@@ -187,8 +187,7 @@ pub fn inject_builtin(
 
                     let class = match shadow {
                         true => ImageClass::Depth { multi },
-                        // todo: check for combined image sampler
-                        false => ImageClass::Sampled { kind, multi, includes_sampler: false },
+                        false => ImageClass::Sampled { kind, multi, includes_sampler },
                     };
 
                     let image = TypeInner::Image {
@@ -276,11 +275,11 @@ pub fn inject_builtin(
             texture_args_generator(TextureArgsOptions::SHADOW | variations.into(), f)
         }
         "textureSize" => {
-            let f = |kind, dim, arrayed, multi, shadow| {
+            let f = |kind, dim, arrayed, multi, shadow, includes_sampler| {
                 let class = match shadow {
                     true => ImageClass::Depth { multi },
                     // todo: check for combined image sampler
-                    false => ImageClass::Sampled { kind, multi, includes_sampler: false },
+                    false => ImageClass::Sampled { kind, multi, includes_sampler },
                 };
 
                 let image = TypeInner::Image {
@@ -310,7 +309,7 @@ pub fn inject_builtin(
         }
         "texelFetch" | "texelFetchOffset" => {
             let offset = "texelFetchOffset" == name;
-            let f = |kind, dim, arrayed, multi, _shadow| {
+            let f = |kind, dim, arrayed, multi, _shadow, includes_sampler| {
                 // Cube images aren't supported
                 if let Dim::Cube = dim {
                     return;
@@ -320,7 +319,7 @@ pub fn inject_builtin(
                     dim,
                     arrayed,
                     // todo: check for combined image sampler
-                    class: ImageClass::Sampled { kind, multi, includes_sampler: false },
+                    class: ImageClass::Sampled { kind, multi, includes_sampler },
                 };
 
                 let dim_value = image_dims_to_coords_size(dim);
@@ -348,7 +347,7 @@ pub fn inject_builtin(
             texture_args_generator(TextureArgsOptions::MULTI | variations.into(), f)
         }
         "imageSize" => {
-            let f = |kind: Sk, dim, arrayed, _, _| {
+            let f = |kind: Sk, dim, arrayed, _, _, _| {
                 // Naga doesn't support cube images and it's usefulness
                 // is questionable, so they won't be supported for now
                 if dim == Dim::Cube {
@@ -372,7 +371,7 @@ pub fn inject_builtin(
             texture_args_generator(variations.into(), f)
         }
         "imageLoad" => {
-            let f = |kind: Sk, dim, arrayed, _, _| {
+            let f = |kind: Sk, dim, arrayed, _, _, _| {
                 // Naga doesn't support cube images and it's usefulness
                 // is questionable, so they won't be supported for now
                 if dim == Dim::Cube {
@@ -411,7 +410,7 @@ pub fn inject_builtin(
             texture_args_generator(variations.into(), f)
         }
         "imageStore" => {
-            let f = |kind: Sk, dim, arrayed, _, _| {
+            let f = |kind: Sk, dim, arrayed, _, _, _| {
                 // Naga doesn't support cube images and it's usefulness
                 // is questionable, so they won't be supported for now
                 if dim == Dim::Cube {
@@ -1762,7 +1761,7 @@ impl MacroCall {
                         .map_or(SampleLevel::Auto, SampleLevel::Bias);
                 }
 
-                texture_call(ctx, args[0], level, comps, texture_offset, body, meta)?
+                texture_call(parser, ctx, args[0], level, comps, texture_offset, body, meta)?
             }
 
             MacroCall::TextureSize { arrayed } => {
@@ -2106,6 +2105,7 @@ impl MacroCall {
 }
 
 fn texture_call(
+    parser: &mut Parser,
     ctx: &mut Context,
     image: Handle<Expression>,
     level: SampleLevel,
@@ -2114,6 +2114,8 @@ fn texture_call(
     body: &mut Block,
     meta: Span,
 ) -> Result<Handle<Expression>> {
+    let ty = ctx.typifier.get(image, &parser.module.types);
+    println!("{:?}", ty);
     if let Some(sampler) = ctx.samplers.get(&image).copied() {
         let mut array_index = comps.array_index;
 
@@ -2340,6 +2342,8 @@ bitflags::bitflags! {
         const CUBE_ARRAY = 1 << 3;
         /// Generates cube arrayed images
         const D2_MULTI_ARRAY = 1 << 4;
+        /// Generates combined image samplers
+        const COMBINED_IMAGE_SAMPLERS = 1 << 4;
     }
 }
 
@@ -2354,6 +2358,9 @@ impl From<BuiltinVariations> for TextureArgsOptions {
         }
         if variations.contains(BuiltinVariations::D2_MULTI_TEXTURES_ARRAY) {
             options |= TextureArgsOptions::D2_MULTI_ARRAY
+        }
+        if variations.contains(BuiltinVariations::COMBINED_IMAGE_SAMPLERS) {
+            options |= TextureArgsOptions::COMBINED_IMAGE_SAMPLERS
         }
         options
     }
@@ -2370,43 +2377,49 @@ impl From<BuiltinVariations> for TextureArgsOptions {
 /// see the struct documentation
 fn texture_args_generator(
     options: TextureArgsOptions,
-    mut f: impl FnMut(crate::ScalarKind, Dim, bool, bool, bool),
+    mut f: impl FnMut(crate::ScalarKind, Dim, bool, bool, bool, bool),
 ) {
     for kind in [Sk::Float, Sk::Uint, Sk::Sint].iter().copied() {
         for dim in [Dim::D1, Dim::D2, Dim::D3, Dim::Cube].iter().copied() {
             for arrayed in [false, true].iter().copied() {
-                if dim == Dim::Cube && arrayed {
-                    if !options.contains(TextureArgsOptions::CUBE_ARRAY) {
+                for combined in [false, true].iter().copied() {
+                    if combined && !options.contains(TextureArgsOptions::COMBINED_IMAGE_SAMPLERS) {
                         continue;
                     }
-                } else if Dim::D2 == dim
-                    && options.contains(TextureArgsOptions::MULTI)
-                    && arrayed
-                    && options.contains(TextureArgsOptions::D2_MULTI_ARRAY)
-                {
-                    // multisampling for sampler2DMSArray
-                    f(kind, dim, arrayed, true, false);
-                } else if !options.contains(TextureArgsOptions::STANDARD) {
-                    continue;
-                }
 
-                f(kind, dim, arrayed, false, false);
+                    if dim == Dim::Cube && arrayed {
+                        if !options.contains(TextureArgsOptions::CUBE_ARRAY) {
+                            continue;
+                        }
+                    } else if Dim::D2 == dim
+                        && options.contains(TextureArgsOptions::MULTI)
+                        && arrayed
+                        && options.contains(TextureArgsOptions::D2_MULTI_ARRAY)
+                    {
+                        // multisampling for sampler2DMSArray
+                        f(kind, dim, arrayed, true, false, combined);
+                    } else if !options.contains(TextureArgsOptions::STANDARD) {
+                        continue;
+                    }
 
-                // 3D images can't be neither arrayed nor shadow
-                // so we break out early, this way arrayed will always
-                // be false and we won't hit the shadow branch
-                if let Dim::D3 = dim {
-                    break;
-                }
+                    f(kind, dim, arrayed, false, false, combined);
 
-                if Dim::D2 == dim && options.contains(TextureArgsOptions::MULTI) && !arrayed {
-                    // multisampling
-                    f(kind, dim, arrayed, true, false);
-                }
+                    // 3D images can't be neither arrayed nor shadow
+                    // so we break out early, this way arrayed will always
+                    // be false and we won't hit the shadow branch
+                    if let Dim::D3 = dim {
+                        break;
+                    }
 
-                if Sk::Float == kind && options.contains(TextureArgsOptions::SHADOW) {
-                    // shadow
-                    f(kind, dim, arrayed, false, true);
+                    if Dim::D2 == dim && options.contains(TextureArgsOptions::MULTI) && !arrayed {
+                        // multisampling
+                        f(kind, dim, arrayed, true, false, combined);
+                    }
+
+                    if Sk::Float == kind && options.contains(TextureArgsOptions::SHADOW) {
+                        // shadow
+                        f(kind, dim, arrayed, false, true, combined);
+                    }
                 }
             }
         }

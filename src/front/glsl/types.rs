@@ -47,6 +47,7 @@ pub fn parse_type(type_name: &str) -> Option<Type> {
                 comparison: type_name == "samplerShadow",
             },
         }),
+
         word => {
             fn kind_width_parse(ty: &str) -> Option<(ScalarKind, u8)> {
                 Some(match ty {
@@ -109,8 +110,8 @@ pub fn parse_type(type_name: &str) -> Option<Type> {
                 })
             };
 
-            let texture_parse = |word: &str| {
-                let mut iter = word.split("texture");
+            let texture_parse = |tex_type: &'static str, includes_sampler: bool| move |word: &str| {
+                let mut iter = word.split(tex_type);
 
                 let texture_kind = |ty| {
                     Some(match ty {
@@ -126,7 +127,7 @@ pub fn parse_type(type_name: &str) -> Option<Type> {
                 let kind = texture_kind(kind)?;
 
                 // todo: check for combined image sampler
-                let sampled = |multi| ImageClass::Sampled { kind, multi, includes_sampler: false };
+                let sampled = |multi| ImageClass::Sampled { kind, multi, includes_sampler };
 
                 let (dim, arrayed, class) = match size {
                     "1D" => (ImageDimension::D1, false, sampled(false)),
@@ -199,7 +200,8 @@ pub fn parse_type(type_name: &str) -> Option<Type> {
 
             vec_parse(word)
                 .or_else(|| mat_parse(word))
-                .or_else(|| texture_parse(word))
+                .or_else(|| texture_parse("texture", false)(word))
+                .or_else(|| texture_parse("sampler", true)(word))
                 .or_else(|| image_parse(word))
         }
     }

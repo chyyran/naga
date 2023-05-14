@@ -187,7 +187,11 @@ pub fn inject_builtin(
 
                     let class = match shadow {
                         true => ImageClass::Depth { multi },
-                        false => ImageClass::Sampled { kind, multi, includes_sampler },
+                        false => ImageClass::Sampled {
+                            kind,
+                            multi,
+                            includes_sampler,
+                        },
                     };
 
                     let image = TypeInner::Image {
@@ -279,7 +283,11 @@ pub fn inject_builtin(
                 let class = match shadow {
                     true => ImageClass::Depth { multi },
                     // todo: check for combined image sampler
-                    false => ImageClass::Sampled { kind, multi, includes_sampler },
+                    false => ImageClass::Sampled {
+                        kind,
+                        multi,
+                        includes_sampler,
+                    },
                 };
 
                 let image = TypeInner::Image {
@@ -319,7 +327,11 @@ pub fn inject_builtin(
                     dim,
                     arrayed,
                     // todo: check for combined image sampler
-                    class: ImageClass::Sampled { kind, multi, includes_sampler },
+                    class: ImageClass::Sampled {
+                        kind,
+                        multi,
+                        includes_sampler,
+                    },
                 };
 
                 let dim_value = image_dims_to_coords_size(dim);
@@ -492,7 +504,7 @@ fn inject_standard_builtins(
                             kind: Sk::Float,
                             multi: matches!(name, "sampler2DMS" | "sampler2DMSArray"),
                             // todo: check for combined image sampler
-                            includes_sampler: false
+                            includes_sampler: false,
                         },
                     },
                     TypeInner::Sampler { comparison: false },
@@ -525,7 +537,7 @@ fn inject_standard_builtins(
                             kind: Sk::Float,
                             multi: false,
                             // todo: check for combined image sampler
-                            includes_sampler: false
+                            includes_sampler: false,
                         },
                         _ => ImageClass::Depth { multi: false },
                     },
@@ -1761,7 +1773,16 @@ impl MacroCall {
                         .map_or(SampleLevel::Auto, SampleLevel::Bias);
                 }
 
-                texture_call(parser, ctx, args[0], level, comps, texture_offset, body, meta)?
+                texture_call(
+                    parser,
+                    ctx,
+                    args[0],
+                    level,
+                    comps,
+                    texture_offset,
+                    body,
+                    meta,
+                )?
             }
 
             MacroCall::TextureSize { arrayed } => {
@@ -2135,8 +2156,14 @@ fn texture_call(
             meta,
             body,
         ))
-    } else if let TypeInner::Image { class: ImageClass::Sampled { includes_sampler: true, .. }, .. }
-        = ctx.typifier.get(image, &parser.module.types) {
+    } else if let TypeInner::Image {
+        class: ImageClass::Sampled {
+            includes_sampler: true,
+            ..
+        },
+        ..
+    } = ctx.typifier.get(image, &parser.module.types)
+    {
         let mut array_index = comps.array_index;
         if let Some(ref mut array_index_expr) = array_index {
             ctx.conversion(array_index_expr, meta, Sk::Sint, 4)?;
@@ -2362,7 +2389,7 @@ bitflags::bitflags! {
         /// Generates cube arrayed images
         const D2_MULTI_ARRAY = 1 << 4;
         /// Generates combined image samplers
-        const COMBINED_IMAGE_SAMPLERS = 1 << 4;
+        const COMBINED_IMAGE_SAMPLERS = 1 << 5;
     }
 }
 
